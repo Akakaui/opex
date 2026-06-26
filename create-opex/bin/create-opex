@@ -1,0 +1,36 @@
+#!/usr/bin/env node
+
+import { runPrompts } from './prompts.js';
+import { runOnboarding } from './onboarding.js';
+
+console.log('');
+console.log('  ╔═══════════════════════════════════════════╗');
+console.log('  ║         OPEX — AI Business OS             ║');
+console.log('  ║    15 Agents • 17 Skills • Ready to Go    ║');
+console.log('  ╚═══════════════════════════════════════════╝');
+console.log('');
+
+try {
+  const answers = await runPrompts();
+  console.log('');
+  console.log('  Installing OPEX system...');
+  await runOnboarding(answers);
+  console.log('');
+  console.log('  ✓ Installation complete!');
+  console.log('');
+  console.log('  Next steps:');
+  if (answers.installOpencode) {
+    console.log('    OpenCode:  @opex [your request]');
+  }
+  if (answers.installClaude) {
+    console.log('    Claude Code:  @opex [your request]');
+  }
+  console.log('');
+} catch (err) {
+  if (err.message === 'User cancelled') {
+    console.log('\n  Installation cancelled.');
+    process.exit(0);
+  }
+  console.error('Error:', err.message);
+  process.exit(1);
+}

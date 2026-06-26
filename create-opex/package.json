@@ -1,0 +1,15 @@
+{
+  "name": "@akakaui/create-opex",
+  "version": "1.0.0",
+  "description": "OPEX - AI Business Operating System for OpenCode & Claude Code",
+  "type": "module",
+  "bin": {
+    "create-opex": "./bin/create-opex"
+  },
+  "files": ["bin", "config", "templates", "README.md"],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": ["ai", "agents", "opencode", "claude", "business", "operating-system"],
+  "license": "MIT"
+}
