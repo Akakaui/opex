@@ -1,0 +1,49 @@
+[
+  {
+    "type": "heading",
+    "level": 1,
+    "text": "OPEX Business Operating System",
+    "accent": true
+  },
+  {
+    "type": "paragraph",
+    "text": "This document demonstrates the document generation capabilities of the OPEX stack."
+  },
+  {
+    "type": "heading",
+    "level": 2,
+    "text": "Features"
+  },
+  {
+    "type": "list",
+    "items": [
+      "PDF generation from HTML or structured content",
+      "Word document creation with proper formatting",
+      "Professional styling with brand colors",
+      "Table support for data presentation",
+      "Cover pages and headers/footers"
+    ]
+  },
+  {
+    "type": "divider"
+  },
+  {
+    "type": "heading",
+    "level": 2,
+    "text": "Brand Specifications"
+  },
+  {
+    "type": "table",
+    "headers": ["Element", "Value", "Usage"],
+    "rows": [
+      ["Background", "#0A0A0A", "Dark mode documents"],
+      ["Accent", "#FF6500", "Headers and key points"],
+      ["Text Primary", "#FFFFFF / #000000", "Body text"],
+      ["Font", "Montserrat", "Headings and UI"]
+    ]
+  },
+  {
+    "type": "accent",
+    "text": "Ready to create professional documents with the OPEX stack."
+  }
+]

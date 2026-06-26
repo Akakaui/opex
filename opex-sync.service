@@ -1,0 +1,14 @@
+[Unit]
+Description=OPEX Auto-Sync Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/home/ubuntu/opex/sync.sh
+Restart=always
+RestartSec=10
+User=ubuntu
+Environment=HOME=/home/ubuntu
+
+[Install]
+WantedBy=multi-user.target
