@@ -25,6 +25,7 @@ const os = require('os');
 
 const YTDLP = '/home/ubuntu/.local/bin/yt-dlp';
 const FFMPEG = 'ffmpeg';
+const PROXY = process.env.WEBSHARE_PROXY || 'http://sgfpmhdm:eqorm333gsth@31.59.20.176:6754/';
 
 function tmpDir(prefix = 'opex-extract') {
   return fs.mkdtempSync(path.join(os.tmpdir(), `${prefix}-`));
@@ -102,7 +103,7 @@ function cleanVTT(vttContent) {
 
 async function extractMetadata(url) {
   try {
-    const cmd = `"${YTDLP}" --dump-json --no-download "${url}"`;
+    const cmd = `"${YTDLP}" --proxy "${PROXY}" --dump-json --no-download "${url}"`;
     const info = JSON.parse(execSync(cmd, { encoding: 'utf-8', timeout: 30000 }));
     
     return {
@@ -125,18 +126,34 @@ async function extractMetadata(url) {
 
 async function downloadAudio(url, outputPath) {
   try {
-    const cmd = `"${YTDLP}" -f "bestaudio" -o "${outputPath}" "${url}"`;
+    const cmd = `"${YTDLP}" --proxy "${PROXY}" -f "bestaudio" -o "${outputPath}" "${url}"`;
     execSync(cmd, { encoding: 'utf-8', timeout: 120000 });
-    return true;
+    
+    // Check if file needs splitting (Groq limit is 25MB)
+    const webmPath = outputPath.replace('.wav', '.webm');
+    const wavPath = outputPath;
+    
+    if (fs.existsSync(wavPath)) {
+      const stats = fs.statSync(wavPath);
+      if (stats.size > 24 * 1024 * 1024) { // > 24MB
+        console.log(`    ⚠ Large file (${(stats.size / 1024 / 1024).toFixed(1)}MB), splitting for transcription...`);
+        const chunksDir = path.join(path.dirname(outputPath), 'chunks');
+        fs.mkdirSync(chunksDir, { recursive: true });
+        const chunks = splitAudio(wavPath, chunksDir);
+        return { wavPath, chunks, needsChunking: true };
+      }
+    }
+    
+    return { wavPath, chunks: [], needsChunking: false };
   } catch (e) {
     console.error(`  ⚠ Audio download failed: ${e.message}`);
-    return false;
+    return null;
   }
 }
 
 async function downloadVideo(url, outputPath, quality = '720') {
   try {
-    const cmd = `"${YTDLP}" -f "best[height<=${quality}]" -o "${outputPath}" "${url}"`;
+    const cmd = `"${YTDLP}" --proxy "${PROXY}" -f "best[height<=${quality}]" -o "${outputPath}" "${url}"`;
     execSync(cmd, { encoding: 'utf-8', timeout: 180000 });
     return true;
   } catch (e) {
@@ -151,6 +168,15 @@ function convertToWav(inputPath, outputPath) {
     return true;
   } catch (e) {
     return false;
+  }
+}
+
+function splitAudio(inputPath, outputDir, chunkDuration = 300) {
+  try {
+    execSync(`${FFMPEG} -i "${inputPath}" -f segment -segment_time ${chunkDuration} -c copy "${outputDir}/chunk_%03d.wav" -y 2>/dev/null`, { encoding: 'utf-8' });
+    return fs.readdirSync(outputDir).filter(f => f.endsWith('.wav')).map(f => path.join(outputDir, f));
+  } catch (e) {
+    return [];
   }
 }
 
@@ -213,16 +239,17 @@ async function extract(url, mode = 'analysis', options = {}) {
     
     // Step 2: Download audio for transcription
     console.log('\n  2. Downloading audio...');
-    const audioPath = path.join(tmp, `audio.${isYouTube(url) ? 'webm' : 'mp4'}`);
-    const audioDownloaded = await downloadAudio(url, audioPath);
+    const audioPath = path.join(tmp, `audio.wav`);
+    const audioResult = await downloadAudio(url, audioPath);
     
-    if (audioDownloaded) {
-      // Convert to WAV for Whisper
-      const wavPath = path.join(tmp, 'audio.wav');
-      if (convertToWav(audioPath, wavPath)) {
-        result.audioPath = wavPath;
-        console.log(`    ✓ Audio ready for transcription (${(fs.statSync(wavPath).size / 1024 / 1024).toFixed(2)} MB)`);
-      }
+    if (audioResult) {
+      result.audioPath = audioResult.wavPath;
+      result.audioChunks = audioResult.chunks;
+      result.needsChunking = audioResult.needsChunking;
+      const size = audioResult.needsChunking 
+        ? `${audioResult.chunks.length} chunks`
+        : `${(fs.statSync(audioResult.wavPath).size / 1024 / 1024).toFixed(2)} MB`;
+      console.log(`    ✓ Audio ready (${size})`);
     }
     
     // Step 3: Download video + extract frames (for analysis/deep modes)

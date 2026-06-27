@@ -114,8 +114,18 @@ rm -rf /tmp/opex-transcript-*
 - yt-dlp — video/audio download (at /home/ubuntu/.local/bin/yt-dlp)
 - ffmpeg — audio conversion + frame extraction
 - Groq API key — Whisper transcription ($GROQ_API_KEY)
+- Webshare proxy — bypasses YouTube IP blocks
 - Ollama — local embeddings (nomic-embed-text)
 - Qdrant — vector storage (port 6333)
+
+## PROXY CONFIGURATION
+
+Proxy is configured in extractor.js:
+```javascript
+const PROXY = process.env.WEBSHARE_PROXY || 'http://sgfpmhdm:eqorm333gsth@31.59.20.176:6754/';
+```
+
+All yt-dlp commands use: `--proxy "${PROXY}"`
 
 ## USAGE
 
