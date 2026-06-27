@@ -7,8 +7,16 @@
       "created": "2026-06-27T08:06:09.781Z",
       "content_count": 1,
       "last_updated": "2026-06-27T08:06:12.221Z"
+    },
+    {
+      "name": "yt-wealth-creation",
+      "platform": "yt",
+      "topic": "wealth-creation",
+      "created": "2026-06-27T00:00:00Z",
+      "content_count": 1,
+      "last_updated": "2026-06-27T00:00:00Z"
     }
   ],
-  "last_updated": "2026-06-27T08:06:12.221Z",
+  "last_updated": "2026-06-27T00:00:00Z",
   "version": 1
 }

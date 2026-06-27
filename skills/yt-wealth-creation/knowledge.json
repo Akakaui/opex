@@ -1,0 +1,42 @@
+{
+  "domain": "yt-wealth-creation",
+  "created": "2026-06-27T00:00:00Z",
+  "last_updated": "2026-06-27T00:00:00Z",
+  "patterns": [
+    "4 paths to wealth: save, earn more, invest, build business",
+    "Equity > Income: own assets, don't just earn salary",
+    "Skills > Credentials: learn to sell, market, negotiate",
+    "Leverage: use other people's money, time, or knowledge",
+    "Compound Effect: small gains compounded over time",
+    "Focus on one thing: master one path before diversifying"
+  ],
+  "frameworks": [
+    {
+      "name": "Wealth Pyramid",
+      "description": "Base: Save money. Middle: Increase income + invest. Top: Build/buy businesses."
+    },
+    {
+      "name": "Hormozi Wealth Principles",
+      "description": "Equity > Income, Skills > Credentials, Leverage, Compound Effect, Focus"
+    }
+  ],
+  "examples": [
+    {
+      "source": "https://youtu.be/sL16tsGafcQ?si=jFPZvLv32luHXHmz",
+      "platform": "yt",
+      "topic": "wealth-creation",
+      "ingested": "2026-06-27T00:00:00Z",
+      "title": "If You Want To Create Wealth In 2026, Watch This (4 Paths)",
+      "author": "Alex Hormozi",
+      "preview": "Alex Hormozi breaks down the 4 paths to wealth creation: save money, make more money, invest money, and build a business. Emphasizes equity over income, skills over credentials, and the power of leverage and compound effect."
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://youtu.be/sL16tsGafcQ?si=jFPZvLv32luHXHmz",
+      "platform": "yt",
+      "author": "Alex Hormozi",
+      "ingested": "2026-06-27T00:00:00Z"
+    }
+  ]
+}
