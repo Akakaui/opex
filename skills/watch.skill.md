@@ -1,88 +1,116 @@
 # WATCH SKILL
 
-Last updated: 2026-06-26
-Version: 2
+Last updated: 2026-06-27
+Version: 3
 Scope: Knowledge Ingestion Agent, Video Agent, Research Agent
 Reference: github.com/bradautomates/claude-video (MIT)
 
 ## PURPOSE
 
 Give agents the ability to watch and analyze any video.
-Not just read a transcript. Actually see what is on screen
-frame by frame and hear what is said with timestamps.
-Full breakdown of visual patterns, editing style, and hooks.
+Downloads audio, transcribes with Groq Whisper, extracts
+frames for visual analysis. All temp files deleted after processing.
 
 ## HOW IT WORKS
 
 The /watch command:
 
-1. Takes a URL (YouTube, TikTok, Instagram, Loom,
-   X/Twitter, Vimeo, local file)
-2. Downloads via yt-dlp
-3. Extracts frames at auto-scaled rate
-4. Pulls transcript via native captions (free)
-   or Whisper API (fallback)
-5. Hands both frames + transcript to the invoking agent
-6. Agent sees the video AND reads the audio together
+1. Takes a URL (YouTube, TikTok, Instagram, etc.)
+2. Downloads audio via yt-dlp (audio-only, fast)
+3. Transcribes audio via Groq Whisper API
+4. Optionally extracts frames for visual analysis
+5. Stores transcript/patterns in domain knowledge
+6. DELETES all temp files (audio, frames, video)
+
+## AUDIO TRANSCRIPTION FLOW
+
+### Step 1: Download Audio
+```bash
+/home/ubuntu/.local/bin/yt-dlp -f "bestaudio" \
+  -o "/tmp/opex-audio-%(id)s.%(ext)s" \
+  "<video_url>"
+```
+
+### Step 2: Convert to WAV (for Whisper)
+```bash
+ffmpeg -i /tmp/opex-audio-*.webm \
+  -ar 16000 -ac 1 \
+  /tmp/opex-audio-*.wav
+```
+
+### Step 3: Transcribe with Groq Whisper
+```bash
+curl -X POST "https://api.groq.com/openai/v1/audio/transcriptions" \
+  -H "Authorization: Bearer $GROQ_API_KEY" \
+  -F "file=@/tmp/opex-audio-*.wav" \
+  -F "model=whisper-large-v3" \
+  -F "response_format=json"
+```
+
+### Step 4: Delete Temp Files
+```bash
+rm -f /tmp/opex-audio-*.webm /tmp/opex-audio-*.wav
+```
 
 ## MODES
 
-### Transcript Mode (fast)
+### Transcript Mode (default)
 ```bash
-node ~/.config/opencode/tools/ingest/extractor.js <url> --mode transcript
+node ~/.config/opencode/tools/ingest/pipeline.js <url> --mode transcript
 ```
-- Extracts subtitles/transcript only
-- No video download
-- Best for: blog posts, articles, quick analysis
+- Downloads audio
+- Transcribes with Groq Whisper
+- Deletes audio
+- Stores transcript in domain
+- Best for: knowledge ingestion
 
-### Analysis Mode (default)
-```bash
-node ~/.config/opencode/tools/ingest/extractor.js <url> --mode analysis
-```
-- Downloads video (720p)
-- Extracts key frames (1 per 30 seconds)
-- Extracts transcript
-- Best for: most content analysis
-
-### Deep Analysis Mode (full)
-```bash
-node ~/.config/opencode/tools/ingest/extractor.js <url> --mode deep
-```
-- Downloads video (720p)
-- Extracts frames at higher rate (1 per 10 seconds)
-- Extracts transcript
-- Full visual pattern analysis
-- Best for: viral content, competitor analysis, learning hooks
-
-### Ingest Mode (store knowledge)
+### Analysis Mode
 ```bash
 node ~/.config/opencode/tools/ingest/pipeline.js <url> --mode analysis
 ```
-- Full extraction + classification + storage
-- Best for: training the knowledge base
+- Downloads audio + video
+- Transcribes audio
+- Extracts key frames (1 per 30 seconds)
+- Deletes all temp files
+- Stores analysis in domain
+- Best for: content analysis, competitor research
 
-## INSTALLATION
+### Deep Mode
+```bash
+node ~/.config/opencode/tools/ingest/pipeline.js <url> --mode deep
+```
+- Downloads audio + video
+- Transcribes audio
+- Extracts frames at higher rate (1 per 10 seconds)
+- Full visual pattern analysis
+- Deletes all temp files
+- Best for: viral content, hook analysis
 
-Manual:
-  git clone https://github.com/bradautomates/claude-video.git
-  ~/.claude/skills/watch
+## CLEANUP RULES (MANDATORY)
 
-Dependencies:
-  yt-dlp — video download (installed at /home/ubuntu/.local/bin/yt-dlp)
-  ffmpeg — frame extraction (installed)
-  Ollama nomic-embed-text — local embeddings (running)
-  Qdrant — vector storage (running on port 6333)
+After EVERY operation:
+
+1. Delete downloaded audio (.webm, .wav, .mp3)
+2. Delete downloaded video (.mp4, .mkv)
+3. Delete extracted frames (.jpg, .png)
+4. Delete subtitle files (.vtt, .srt)
+5. Log what was deleted
+6. Report: "Cleaned up [X] files, freed [Y] MB"
+
+NO EXCEPTIONS. Storage is limited.
+
+## DEPENDENCIES
+
+- yt-dlp — audio/video download (at /home/ubuntu/.local/bin/yt-dlp)
+- ffmpeg — audio conversion (installed)
+- Groq API key — Whisper transcription (needs $GROQ_API_KEY)
+- Ollama nomic-embed-text — local embeddings (running)
+- Qdrant — vector storage (running on port 6333)
 
 ## USAGE
 
 Basic:
   /watch [URL] [question or instruction]
-
-Focused section:
-  /watch [URL] --start [time] --end [time]
-
-Higher resolution:
-  /watch [URL] --resolution 1024
 
 Transcript only:
   /watch [URL] --mode transcript
@@ -93,38 +121,33 @@ Full analysis:
 Ingest to knowledge base:
   /watch [URL] --ingest
 
-## FRAME BUDGET
-
-  ≤30 seconds: ~30 frames
-  30-60 seconds: ~40 frames
-  1-3 minutes: ~60 frames
-  3-10 minutes: ~80 frames
-  10+ minutes: 100 frames (sparse — use --start/--end for focus)
-
 ## WHEN AGENTS INVOKE THIS
 
 Knowledge Ingestion Agent:
   /watch [expert video URL] --ingest
-  "Extract all frameworks, methods, hooks, pattern
-  interrupts, and business principles. Identify what
-  appears on screen during key points and how
-  concepts are visualized. Store in appropriate domain."
+  "Transcribe this video, extract frameworks and methods,
+  store in appropriate domain. Delete all temp files after."
 
 Video Agent (reel analysis):
   /watch [reel URL] --mode deep
-  "Analyze the hook setup in frames 0-3, the pattern
-  interrupt location and type, the pacing and cut
-  frequency, the text overlay timing, the animation
-  style, and the CTA placement and format."
+  "Analyze the hook, pacing, visual style, and CTAs.
+  Delete all frames after analysis."
 
 Research Agent:
   /watch [competitor video URL] --mode analysis
-  "Analyze the content structure, key arguments,
-  visual presentation style, and why this video
-  is likely performing well."
+  "Analyze content structure and key arguments.
+  Delete all temp files after."
 
-OPEX (orchestrator):
-  /watch [URL]
-  "Full breakdown: frames, audio, subtitles, visual
-  patterns, editing style, hooks, and CTAs. Store
-  relevant patterns in domain knowledge."
+## GROQ API KEY SETUP
+
+Get free API key from: https://console.groq.com/keys
+
+Set in environment:
+```bash
+export GROQ_API_KEY="gsk_..."
+```
+
+Or add to ~/.bashrc:
+```bash
+echo 'export GROQ_API_KEY="gsk_..."' >> ~/.bashrc
+```

@@ -17,6 +17,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 const { extract } = require('./extractor.js');
 const { classifyWithLLM } = require('./classifier.js');
 const { embed } = require('./embedder.js');
@@ -24,6 +25,48 @@ const { createCollection, collectionExists, upsert, search } = require('./qdrant
 
 const SKILLS_DIR = process.env.SKILLS_DIR || path.join(process.env.HOME, '.config/opencode/skills');
 const DOMAINS_FILE = path.join(SKILLS_DIR, 'domain-router/domains.json');
+
+function cleanupTempFiles(videoId) {
+  const patterns = [
+    `/tmp/opex-audio-*`,
+    `/tmp/opex-video-*`,
+    `/tmp/opex-frames-*`,
+    `/tmp/opex-extract-*`,
+    `/tmp/opex-transcript-*`,
+    `/tmp/*.webm`,
+    `/tmp/*.wav`,
+    `/tmp/*.mp3`,
+    `/tmp/*.mp4`,
+    `/tmp/*.mkv`,
+    `/tmp/*.jpg`,
+    `/tmp/*.png`,
+    `/tmp/*.vtt`,
+    `/tmp/*.srt`,
+  ];
+  
+  let deletedCount = 0;
+  let freedBytes = 0;
+  
+  for (const pattern of patterns) {
+    try {
+      const files = execSync(`ls ${pattern} 2>/dev/null`, { encoding: 'utf-8' }).trim().split('\n').filter(f => f);
+      for (const file of files) {
+        try {
+          const stats = fs.statSync(file);
+          freedBytes += stats.size;
+          fs.unlinkSync(file);
+          deletedCount++;
+        } catch (e) {
+          // File might be in use, skip
+        }
+      }
+    } catch (e) {
+      // No files matching pattern
+    }
+  }
+  
+  return { deletedCount, freedMB: (freedBytes / 1024 / 1024).toFixed(2) };
+}
 
 function getDomains() {
   try {
@@ -239,6 +282,11 @@ async function ingestContent(url, mode = 'analysis') {
     console.log(`  ✓ Transcript stored (${extracted.transcript.length} chars)`);
   }
   
+  // Step 7: Cleanup temp files
+  console.log('\n  7. Cleaning up temp files...');
+  const cleanup = cleanupTempFiles();
+  console.log(`  ✓ Deleted ${cleanup.deletedCount} files, freed ${cleanup.freedMB} MB`);
+  
   console.log('\n  ✓ Ingestion complete!');
   
   return {
@@ -247,6 +295,10 @@ async function ingestContent(url, mode = 'analysis') {
     platform: classification.platform,
     topic: classification.topic,
     title: extracted.title,
+    cleanup: {
+      filesDeleted: cleanup.deletedCount,
+      mbFreed: parseFloat(cleanup.freedMB),
+    },
   };
 }
 
